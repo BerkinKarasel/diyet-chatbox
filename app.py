@@ -2,12 +2,12 @@ import streamlit as st
 from transformers import pipeline
 
 st.set_page_config(page_title="Diyet Chatbox", page_icon="🍏")
-st.title("🍏 Yapay Zeka Destekli Diyet Chatbox (Web Tabanlı)")
+st.title("🍏 Yapay Zeka Destekli Diyet Chatbox (Flan-T5 Base)")
 
-# Hugging Face'ten küçük bir model (Türkçe destekli BloomZ)
+# Hugging Face FLAN-T5 tabanlı model
 @st.cache_resource
 def load_model():
-    return pipeline("text-generation", model="bigscience/bloomz-560m")
+    return pipeline("text2text-generation", model="google/flan-t5-base")
 
 generator = load_model()
 
@@ -25,14 +25,26 @@ activity = st.selectbox("Aktivite Seviyesi", [
 
 if st.button("Haftalık Diyet Önerisi Al"):
     prompt = f"""
-    Kullanıcı bilgileri:
-    Yaş: {age}, Cinsiyet: {gender}, Boy: {height}, Kilo: {weight},
-    Hedef: {goal}, Aktivite: {activity}.
+Sen profesyonel bir diyetisyensin. 
+Kullanıcı bilgileri: Yaş: {age}, Cinsiyet: {gender}, Boy: {height} cm, Kilo: {weight} kg,
+Hedef: {goal}, Aktivite: {activity}.
 
-    Bu kişiye uygun 1 haftalık detaylı diyet listesi hazırla.
-    Kahvaltı, ara öğün, öğle, akşam yemeklerini belirt.
-    """
+Görev: Bu kişiye uygun 7 günlük bir diyet programı hazırla. 
+- Her gün için Kahvaltı, Ara Öğün, Öğle, Ara Öğün, Akşam başlıklarını yaz.
+- Türk mutfağından yiyecekler öner.
+- Yaklaşık kalori bilgisini ekle.
+"""
+
     with st.spinner("Diyet önerisi hazırlanıyor..."):
-        result = generator(prompt, max_length=300, do_sample=True, temperature=0.7)
-        st.subheader("📝 Haftalık Diyet Önerisi")
-        st.write(result[0]["generated_text"])
+        result = generator(prompt, max_length=512, do_sample=True)
+
+    text_output = result[0]["generated_text"]
+
+    # Sonucu daha okunabilir hale getir
+    st.subheader("📝 Haftalık Diyet Önerisi")
+    for line in text_output.split("\n"):
+        if line.strip():
+            if any(day in line.lower() for day in ["gün", "day"]):
+                st.markdown(f"### 📅 {line}")
+            else:
+                st.markdown(f"- {line}")
