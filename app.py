@@ -1,3 +1,5 @@
+import re
+
 import streamlit as st
 from transformers import pipeline
 
@@ -42,9 +44,11 @@ Görev: Bu kişiye uygun 7 günlük bir diyet programı hazırla.
 
     # Sonucu daha okunabilir hale getir
     st.subheader("📝 Haftalık Diyet Önerisi")
+    day_heading_pattern = re.compile(r"^\s*(\d+\.?\s*)?(gün|day)\b", re.IGNORECASE)
+
     for line in text_output.split("\n"):
         if line.strip():
-            if any(day in line.lower() for day in ["gün", "day"]):
+            if day_heading_pattern.match(line):
                 st.markdown(f"### 📅 {line}")
             else:
                 st.markdown(f"- {line}")
